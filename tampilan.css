@@ -1,0 +1,257 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+:root {
+    /* Color Palette - Modern SaaS Style */
+    --primary: #f97316;       /* Orange-500: Lebih fresh */
+    --primary-dark: #c2410c;  /* Orange-700: Untuk hover */
+    --primary-bg: #fff7ed;    /* Orange-50: Background aksen */
+    
+    --bg-page: #f8fafc;       /* Slate-50: Background halaman (tidak putih polos) */
+    --bg-card: #ffffff;
+    
+    --border: #e2e8f0;        /* Slate-200: Garis tipis modern */
+    --border-hover: #cbd5e1;
+    
+    --text-main: #0f172a;     /* Slate-900: Hampir hitam, lebih lembut */
+    --text-muted: #64748b;    /* Slate-500: Abu-abu teks sekunder */
+    
+    --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+    --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+    
+    --radius: 12px;           /* Sudut membulat modern */
+}
+
+* {
+    box-sizing: border-box;
+    -webkit-tap-highlight-color: transparent;
+}
+
+body { 
+    font-family: 'Inter', sans-serif;
+    font-size: 14px;
+    line-height: 1.5;
+    background-color: var(--bg-page);
+    color: var(--text-main);
+    -webkit-font-smoothing: antialiased; /* Font lebih tajam */
+}
+
+/* --- Layout Tweaks --- */
+.container {
+    padding-left: 16px !important;
+    padding-right: 16px !important;
+    max-width: 600px !important; /* Membatasi lebar di layar besar agar rapi */
+}
+
+.grid {
+    gap: 12px !important; /* Sedikit lebih renggang agar 'bernafas' */
+}
+
+/* --- Header Modern (Clean White) --- */
+/* Kita ubah header jadi putih bersih ala aplikasi iOS/Android modern */
+header.gradient-bg {
+    background: rgba(255, 255, 255, 0.9) !important;
+    backdrop-filter: blur(8px);
+    border-bottom: 1px solid var(--border);
+    box-shadow: none !important;
+    position: sticky;
+    top: 0;
+    z-index: 50;
+    padding-top: 12px !important;
+    padding-bottom: 12px !important;
+}
+
+header h1 {
+    color: var(--text-main) !important;
+    font-size: 18px !important;
+    letter-spacing: -0.5px;
+}
+
+header p {
+    color: var(--text-muted) !important;
+}
+
+/* Tombol Admin di Header */
+header button {
+    background: var(--bg-page) !important;
+    color: var(--text-main) !important;
+    border: 1px solid var(--border);
+    font-weight: 500;
+}
+
+header .admin-badge {
+    background: var(--primary-bg) !important;
+    border: 1px solid var(--primary);
+}
+header .admin-badge span, header .admin-badge button {
+    color: var(--primary-dark) !important;
+}
+
+/* --- Global Card Style --- */
+.card-shadow, .bg-white {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow-sm); /* Shadow sangat tipis */
+}
+
+/* --- Date Selector & Stats --- */
+.stats-section .bg-white {
+    padding: 16px !important;
+}
+
+.stats-section h3 {
+    text-transform: uppercase;
+    font-size: 11px !important;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    color: var(--text-muted) !important;
+}
+
+.stats-section p {
+    font-feature-settings: "tnum"; /* Angka tabular agar rata */
+}
+
+/* --- Tabs (Segmented Control Style) --- */
+/* Mengubah tab tombol jadi seperti "Switch" di iPhone */
+.tab-section .bg-white {
+    background: #f1f5f9 !important; /* Slate-100 */
+    padding: 4px !important;
+    border: 1px solid var(--border);
+    box-shadow: none !important;
+}
+
+.tab-section button {
+    border-radius: 8px !important;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-muted);
+    border: none;
+}
+
+.tab-section button.bg-primary {
+    background: #ffffff !important;
+    color: var(--text-main) !important;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.1); /* Shadow halus untuk tab aktif */
+    font-weight: 600;
+}
+
+/* --- JUZ CARD (Komponen Utama) --- */
+.juz-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border) !important;
+    padding: 16px !important;
+    gap: 8px !important;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
+    position: relative;
+    /* Indikator strip warna di kiri (opsional, menambah aksen) */
+    border-left: 3px solid transparent !important; 
+}
+
+.juz-card:hover {
+    border-color: var(--primary) !important;
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+}
+
+/* Typography di dalam Card */
+.juz-card h3 {
+    font-size: 16px !important;
+    font-weight: 700 !important;
+    color: var(--text-main);
+}
+
+.juz-card h4 {
+    font-size: 14px !important;
+    font-weight: 600 !important;
+    color: var(--primary-dark) !important;
+}
+
+.juz-card p {
+    font-size: 13px !important;
+    color: var(--text-muted) !important;
+    line-height: 1.4 !important;
+}
+
+/* --- State: COMPLETED (Modern Solid) --- */
+/* Saat selesai, gunakan warna solid matte, bukan gradient mengkilap */
+.completed {
+    background-color: var(--text-main) !important; /* Gelap (Slate-900) agar kontras elegan */
+    border-color: var(--text-main) !important;
+    border-left-color: var(--primary) !important; /* Aksen orange */
+}
+
+.completed h3 { color: #ffffff !important; }
+.completed h4 { color: var(--primary) !important; } /* Nama peserta jadi Orange */
+.completed p { color: #94a3b8 !important; } /* Teks abu muda */
+.completed .text-xl { filter: grayscale(1); } /* Icon centang jadi subtle */
+
+/* Indikator "Selesai" di bawah */
+.completed .text-center span {
+    background: rgba(255,255,255,0.1);
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 11px !important;
+    color: #fff;
+}
+
+/* --- Form Elements (Inputs) --- */
+input[type="text"], 
+input[type="date"], 
+input[type="password"], 
+select {
+    background-color: #fff;
+    border: 1px solid var(--border) !important;
+    border-radius: 8px !important;
+    padding: 10px 12px !important;
+    font-size: 14px;
+    color: var(--text-main);
+    width: 100%;
+    transition: border 0.15s ease;
+}
+
+input:focus, select:focus {
+    outline: none;
+    border-color: var(--primary) !important;
+    box-shadow: 0 0 0 3px rgba(249, 115, 22, 0.15) !important; /* Ring orange halus */
+}
+
+/* --- Buttons --- */
+.btn-primary {
+    background: var(--text-main); /* Tombol hitam/gelap lebih elegan drpd orange terang */
+    color: white;
+    font-weight: 500;
+    padding: 10px 20px;
+    border-radius: 8px;
+}
+
+.btn-primary:hover {
+    background: var(--primary-dark);
+    transform: translateY(-1px);
+}
+
+/* --- Utilities --- */
+.pb-20 { padding-bottom: 80px !important; }
+
+/* Status Connection (Toast Style) */
+.connection-status {
+    top: 80px; /* Di bawah header */
+    right: 50%;
+    transform: translateX(50%);
+    border-radius: 20px;
+    box-shadow: var(--shadow-md);
+    border: 1px solid rgba(0,0,0,0.1);
+    font-weight: 500;
+}
+
+/* Scrollbar Halus */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+
+/* Floating Buttons */
+.floating-buttons { bottom: 24px; right: 24px; gap: 12px; }
+.floating-btn {
+    box-shadow: var(--shadow-md);
+    border-radius: 16px; /* Squircle */
+    width: 52px; height: 52px;
+}
