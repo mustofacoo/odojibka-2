@@ -14,11 +14,7 @@
                 showAnnouncement: false,
                 showEditParticipant: false,
                 editingParticipant: { id: null, name: '' },
-                
-                // Supabase credentials (for debugging)
-                SUPABASE_URL: 'https://avbfccjifnptszchabjh.supabase.co',
-                SUPABASE_ANON_KEY: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImF2YmZjY2ppZm5wdHN6Y2hhYmpoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTE2OTQyODMsImV4cCI6MjA2NzI3MDI4M30.Al8QBt2khiS35uG5IkGIJrLtAd1niWUFAbcsx_pBEgU',
-                
+                               
                 // Data peserta
                 participants: [
                     { id: 1, name: 'Peserta 1' }, { id: 2, name: 'Peserta 2' }, { id: 3, name: 'Peserta 3' }, { id: 4, name: 'Peserta 4' },
@@ -67,6 +63,8 @@
 
                 // State management
                 activeTab: 'checklist',
+                currentMotivation: '',
+                motivations: [],
                 selectedDate: '',
                 todayChecks: {},
                 monthlyData: {}, // Format: { "2025-07": { participantChecks: { 1: ["2025-07-01", "2025-07-02"], 2: [...] }, khatamDays: ["2025-07-01"] } }
@@ -86,6 +84,7 @@
 
                 async init() {
                     console.log('🚀 Starting One Day One Juz App...');
+                    this.loadMotivations();
                     this.loadingMessage = 'Memulai aplikasi...';
                     
                     try {
@@ -867,6 +866,29 @@
                 
                 return sorted;
             },
+            // --- FUNGSI TAMBAHAN BARU ---
+                async loadMotivations() {
+                    try {
+                        // Ambil data dari file json
+                        const response = await fetch('motivasi.json');
+                        if (!response.ok) throw new Error('Gagal load motivasi');
+                        
+                        this.motivations = await response.json();
+                        this.randomizeMotivation();
+                    } catch (error) {
+                        console.log('Menggunakan motivasi default', error);
+                        // Fallback jika file json gagal dimuat
+                        this.currentMotivation = '"Sebaik-baik kalian adalah yang mempelajari Al-Quran dan mengajarkannya."';
+                    }
+                },
+
+                randomizeMotivation() {
+                    if (this.motivations.length > 0) {
+                        const randomIndex = Math.floor(Math.random() * this.motivations.length);
+                        this.currentMotivation = this.motivations[randomIndex];
+                    }
+                },
+                // ---------------------------
 
                 async saveData() {
                     // Always save to localStorage as backup
@@ -1057,6 +1079,19 @@
                     
                     this.exportText = exportText;
                 },
+
+                // --- KODE BARU ---
+                // Fungsi cepat untuk generate dan copy langsung
+                quickExportAndCopy() {
+                    // 1. Generate text laporan
+                    this.generateWhatsAppExport();
+                    
+                    // 2. Tunggu sebentar (nextTick) agar data tersimpan variable, lalu copy
+                    this.$nextTick(() => {
+                        this.copyToClipboard();
+                    });
+                },
+                // ----------------
 
                 copyToClipboard() {
                     if (navigator.clipboard) {
