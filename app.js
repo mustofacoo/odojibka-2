@@ -80,7 +80,7 @@
                 exportText: '',
                 
                 // Program start date
-                programStartDate: new Date('2025-07-01'),
+                programStartDate: new Date('2025-10-01'),
 
                 async init() {
                     console.log('🚀 Starting One Day One Juz App...');
@@ -251,15 +251,28 @@
                         }
 
                         // 🆕 Load ALL daily checks (tidak hanya hari ini)
-                        const { data: allChecks, error: allChecksError } = await window.supabaseClient
-                            .from('daily_checks')
-                            .select('participant_id, check_date')
-                            .order('check_date', { ascending: false })
-                            .limit(2000); // Ambil 2000 record terakhir
+                        let allChecks = [];
+                        let from = 0;
+                        const pageSize = 1000;
+
+                        while (true) {
+                            const { data, error } = await window.supabaseClient
+                                .from('daily_checks')
+                                .select('participant_id, check_date')
+                                .order('check_date', { ascending: true })
+                                .range(from, from + pageSize - 1);
                             
-                        if (allChecksError) {
-                            console.warn('All checks load warning:', allChecksError);
-                        } else if (allChecks) {
+                            if (error) { console.warn('All checks load warning:', error); break; }
+                            if (!data || data.length === 0) break;
+                            
+                            allChecks = allChecks.concat(data);
+                            console.log(`📥 Fetched ${allChecks.length} records...`);
+                            
+                            if (data.length < pageSize) break;
+                            from += pageSize;
+                        }
+
+                        if (allChecks.length > 0) {
                             // Reset struktur data
                             this.todayChecks = {};
                             this.monthlyData = {};
@@ -570,7 +583,7 @@
                 },
 
                 goToProgramStart() {
-                    this.selectedDate = '2025-07-01'; // Tanggal mulai program
+                    this.selectedDate = '2025-10-01'; // Tanggal mulai program
                 },
 
                 goBackDays(days) {
@@ -614,7 +627,7 @@
                                     const targetDate = new Date(targetDateKey); 
                                     
                                     // 3. Buat tanggal mulai dengan cara yang sama (T00:00:00 zona waktu LOKAL)
-                                    const programStart = new Date('2025-07-01');
+                                    const programStart = new Date('2025-10-01');
                                     
                                     // 4. Hitung selisih waktu
                                     const diffTime = targetDate - programStart;
@@ -789,7 +802,7 @@
                 generateAvailableMonths() {
                     const months = [];
                     const currentDate = new Date();
-                    const startDate = new Date('2025-07-01');
+                    const startDate = new Date('2025-10-01');
                     const endDate = new Date(currentDate.getFullYear(), currentDate.getMonth() + 6, 1);
                     
                     let tempDate = new Date(startDate);
@@ -866,6 +879,55 @@
                 
                 return sorted;
             },
+
+            // Hitung berapa kali peserta sudah khatam (selesai 30 hari berturut tanpa bolong)
+getParticipantKhatamCount(participantId) {
+    // Kumpulkan semua tanggal centang peserta dari seluruh monthlyData
+    const allDates = new Set();
+    
+    Object.values(this.monthlyData).forEach(monthData => {
+        const checks = monthData.participantChecks?.[participantId] || [];
+        checks.forEach(date => allDates.add(date));
+    });
+    
+    if (allDates.size === 0) return 0;
+    
+    const startDate = new Date('2025-10-01');
+    const today = new Date(this.getTodayKey());
+    
+    // Hitung total hari program yang sudah berlalu
+    const totalDays = Math.floor((today - startDate) / (1000 * 60 * 60 * 24)) + 1;
+    
+    let khatamCount = 0;
+    
+    // Cek setiap siklus 30 hari: hari ke-1..30, hari ke-31..60, dst.
+    for (let cycleStart = 0; cycleStart < totalDays; cycleStart += 30) {
+        const cycleEnd = Math.min(cycleStart + 29, totalDays - 1);
+        
+        // Hanya hitung siklus yang sudah lengkap 30 hari
+        if (cycleEnd - cycleStart < 29) break;
+        
+        let cycleComplete = true;
+        
+        for (let dayOffset = cycleStart; dayOffset <= cycleEnd; dayOffset++) {
+            const date = new Date(startDate);
+            date.setDate(date.getDate() + dayOffset);
+            const dateKey = new Intl.DateTimeFormat('sv-SE', {
+                timeZone: 'Asia/Jakarta',
+                year: 'numeric', month: '2-digit', day: '2-digit'
+            }).format(date);
+            
+            if (!allDates.has(dateKey)) {
+                cycleComplete = false;
+                break;
+            }
+        }
+        
+        if (cycleComplete) khatamCount++;
+    }
+    
+    return khatamCount;
+},
             // --- FUNGSI TAMBAHAN BARU ---
                 async loadMotivations() {
                     try {
