@@ -373,7 +373,9 @@
                             <template x-for="participant in getSortedParticipants()" :key="participant.id">
                                 <tr class="hover:bg-gray-50">
                                     <td class="px-3 py-2">
-                                        <div class="text-xs font-medium text-gray-900" x-text="participant.name"></div>
+                                        <div class="text-xs font-medium text-primary underline decoration-dotted cursor-pointer"
+                                        @click="openParticipantDetail(participant)"
+                                        x-text="participant.name"></div>
                                         <template x-if="getParticipantKhatamCount(participant.id) > 0">
                                             <div class="text-[10px] text-yellow-600 font-semibold mt-0.5">
                                                  Khatam <span x-text="getParticipantKhatamCount(participant.id)"></span>x
@@ -399,6 +401,56 @@
                 </div>
             </div>
         </div>
+        <!-- Tab Content: Detail Peserta -->
+<div x-show="activeTab === 'participant-detail' && selectedParticipantDetail" class="container mx-auto pb-20">
+
+    <!-- Header + tombol kembali -->
+    <div class="bg-white rounded-xl p-3 card-shadow mb-3 flex items-center gap-3">
+        <button @click="closeParticipantDetail()"
+                class="bg-gray-100 hover:bg-gray-200 p-2 rounded-lg transition-all duration-200 flex-shrink-0">
+            <span class="text-lg">⬅</span>
+        </button>
+        <div>
+            <h3 class="text-sm font-bold text-gray-800" x-text="selectedParticipantDetail?.name"></h3>
+            <p class="text-[10px] text-gray-500">
+                <span x-text="getParticipantMonthlyCount(selectedParticipantDetail?.id)"></span>/<span x-text="getDaysInMonth()"></span> hari centang
+            </p>
+        </div>
+    </div>
+
+    <!-- Filter Bulan -->
+    <div class="bg-white rounded-xl p-3 card-shadow mb-3">
+        <div class="flex items-center space-x-3">
+            <label class="font-semibold text-gray-700 text-xs">Bulan:</label>
+            <select x-model="selectedMonth" @change="updateMonthlyView()"
+                    class="flex-1 border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-orange-500 focus:border-transparent text-xs">
+                <template x-for="month in availableMonths" :key="month.value">
+                    <option :value="month.value" x-text="month.label"></option>
+                </template>
+            </select>
+        </div>
+    </div>
+
+    <!-- Grid Kalender -->
+    <div class="grid grid-cols-3 gap-2">
+        <template x-for="day in getMonthCalendarDays()" :key="day.dateKey">
+            <div class="rounded-xl p-3 text-center card-shadow border-2 transition-all duration-200"
+                 :class="{
+                    'bg-primary border-primary': day.checked,
+                    'bg-white border-gray-200 hover:border-orange-300': !day.checked && !day.isFuture,
+                    'bg-gray-50 border-gray-100 opacity-50 cursor-not-allowed': day.isFuture,
+                    'cursor-pointer': !day.isFuture,
+                    'ring-2 ring-orange-400 ring-offset-1': day.isToday
+                 }"
+                 @click="!day.isFuture && toggleCheck(selectedParticipantDetail.id, day.dateKey)">
+                <p class="text-sm font-semibold" :class="day.checked ? 'text-white' : 'text-gray-800'" x-text="day.date"></p>
+                <p class="text-[10px] font-bold mt-1"
+                   :class="day.checked ? 'text-orange-100' : 'text-green-600'"
+                   x-text="day.juz ? 'Juz ' + day.juz : '-'"></p>
+            </div>
+        </template>
+    </div>
+</div>
 
         <!-- Tab Content: Admin -->
         <div x-show="activeTab === 'admin' && isAdmin" class="container mx-auto px-3 pb-20">
@@ -460,6 +512,16 @@
                                         class="flex-shrink-0 bg-purple-500 text-white px-2 py-1 rounded text-xs hover:bg-purple-600 transition-all">
                                         ✏️
                                     </button>
+                                    <button 
+                                        @click="deleteParticipantChecks(participant)"
+                                        title="Hapus data centang peserta ini (peserta berhenti)"
+                                        class="flex-shrink-0 bg-red-500 text-white px-2 py-1 rounded text-xs hover:bg-red-600 transition-all">
+                                        🗑️
+                                    </button>
+                                    <div class="flex-shrink-0 w-12 text-center">
+    <span class="text-xs font-bold text-purple-600" x-text="'#' + participant.id"></span>
+    <div class="text-[9px] text-gray-400" x-text="getParticipantTotalChecksAllTime(participant.id) + 'x'"></div>
+</div>
                                 </div>
                             </template>
                         </div>
