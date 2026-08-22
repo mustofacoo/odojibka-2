@@ -72,6 +72,7 @@ function quranTracker() {
                 
                 selectedMonth: '',
                 availableMonths: [],
+                selectedParticipantDetail: null,
                 
                 // Admin
                 isAdmin: false,
@@ -631,17 +632,17 @@ function quranTracker() {
                 },
 
                 // 🔧 FIXED: Pessimistic update + isSaving flag + upsert + retry
-                async toggleCheck(participantId) {
-                    // 🔒 Cegah klik ganda
+                async toggleCheck(participantId, dateKeyOverride = null) {
                     if (this.isSaving) return;
-
-                    // 🔒 Blokir centang saat offline
                     if (!this.supabaseConnected) {
                         alert('⚠️ Anda sedang offline. Fitur centang dinonaktifkan sementara hingga internet kembali online.');
                         return;
                     }
+                    // 🆕 kalau dipanggil dari kalender rekap (dateKeyOverride), pakai tanggal itu
+                    if (dateKeyOverride && dateKeyOverride > this.getTodayKey()) return; // cegah centang tanggal depan
+                    const targetDate = dateKeyOverride || this.selectedDate || this.getTodayKey();
 
-                    const targetDate = this.selectedDate || this.getTodayKey();
+
                     const currentMonth = targetDate.slice(0, 7);
 
                     if (!this.todayChecks[targetDate]) this.todayChecks[targetDate] = [];
@@ -883,6 +884,142 @@ function quranTracker() {
                     }
                     
                     return khatamCount;
+                },
+
+                                // 🆕 Total centang peserta dari SEMUA bulan (untuk info sebelum hapus)
+                getParticipantTotalChecksAllTime(participantId) {
+                    let total = 0;
+                    Object.values(this.monthlyData).forEach(monthData => {
+                        total += monthData.participantChecks?.[participantId]?.length || 0;
+                    });
+                    return total;
+                },
+
+                // 🆕 Hapus semua data centang milik satu peserta (khusus admin)
+                async deleteParticipantChecks(participant) {
+                    if (!this.isAdmin) return;
+
+                    if (!this.supabaseConnected) {
+                        alert('⚠️ Tidak bisa menghapus data saat offline. Pastikan koneksi internet aktif lalu coba lagi.');
+                        return;
+                    }
+
+                    const totalChecks = this.getParticipantTotalChecksAllTime(participant.id);
+                    const confirmMsg = `⚠️ Hapus SEMUA data centang milik "${participant.name}"?\n\n` +
+                        `Total ${totalChecks} centang dari seluruh bulan akan dihapus permanen, ` +
+                        `termasuk status khatam pada hari-hari yang terpengaruh.\n\n` +
+                        `Nama & data peserta lain TIDAK berubah. Tindakan ini tidak bisa dibatalkan.`;
+
+                    if (!confirm(confirmMsg)) return;
+                    if (!confirm('🚨 Konfirmasi terakhir — lanjutkan hapus data centang peserta ini?')) return;
+
+                    this.isLoading = true;
+                    this.loadingMessage = `Menghapus data centang ${participant.name}...`;
+
+                    try {
+                        // Kumpulkan tanggal-tanggal yang tercentang peserta ini, untuk cek ulang status khatam
+                        const affectedDates = new Set();
+                        Object.entries(this.todayChecks).forEach(([date, ids]) => {
+                            if (ids.includes(participant.id)) affectedDates.add(date);
+                        });
+
+                        // Hapus dari Supabase
+                        const { error } = await window.supabaseClient
+                            .from('daily_checks')
+                            .delete()
+                            .eq('participant_id', participant.id);
+
+                        if (error) throw error;
+
+                        // Hapus dari state lokal: todayChecks
+                        Object.keys(this.todayChecks).forEach(date => {
+                            const idx = this.todayChecks[date].indexOf(participant.id);
+                            if (idx > -1) this.todayChecks[date].splice(idx, 1);
+                        });
+
+                        // Hapus dari state lokal: monthlyData
+                        Object.keys(this.monthlyData).forEach(monthKey => {
+                            if (this.monthlyData[monthKey].participantChecks[participant.id]) {
+                                delete this.monthlyData[monthKey].participantChecks[participant.id];
+                            }
+                        });
+
+                        // Cek ulang status khatam untuk tanggal-tanggal yang terpengaruh
+                        affectedDates.forEach(date => {
+                            const monthKey = date.slice(0, 7);
+                            if (this.monthlyData[monthKey]) {
+                                this.updateKhatamStatus(date, monthKey);
+                            }
+                        });
+
+                        this.saveData();
+                        alert(`✅ Data centang "${participant.name}" berhasil dihapus (${totalChecks}x centang).`);
+
+                    } catch (error) {
+                        console.error('❌ Gagal menghapus data centang:', error);
+                        alert('❌ Gagal menghapus data centang. Periksa koneksi lalu coba lagi.');
+                        await this.loadDataFromSupabase();
+                    } finally {
+                        this.isLoading = false;
+                    }
+                },
+            
+
+                // 🆕 Buka tab detail peserta
+                openParticipantDetail(participant) {
+                    this.selectedParticipantDetail = participant;
+                    this.activeTab = 'participant-detail';
+                },
+
+                // 🆕 Kembali ke tab Rekap
+                closeParticipantDetail() {
+                    this.activeTab = 'monthly';
+                    this.selectedParticipantDetail = null;
+                },
+
+                // 🆕 Cek status centang peserta pada tanggal tertentu (bukan cuma selectedDate)
+                isParticipantCheckedOnDate(participantId, dateKey) {
+                    return this.todayChecks[dateKey]?.includes(participantId) || false;
+                },
+
+                // 🆕 Hitung Juz keberapa yang jadi jatah peserta pada tanggal tertentu,
+                // pakai logika rotasi yang sama dengan getRotatedParticipants()
+                getJuzForParticipantOnDate(participantId, dateKey) {
+                    const originalIndex = this.participants.findIndex(p => p.id === participantId);
+                    if (originalIndex === -1) return null;
+
+                    const [year, month, day] = dateKey.split('-').map(Number);
+                    const targetDate = new Date(year, month - 1, day);
+                    const programStart = new Date(2025, 6, 1);
+                    const diffDays = Math.floor((targetDate - programStart) / (1000 * 60 * 60 * 24));
+
+                    const n = this.participants.length;
+                    const shift = ((diffDays % n) + n) % n; // aman untuk tanggal sebelum program mulai
+                    const juzIndex = (originalIndex + shift) % n;
+                    return juzIndex + 1;
+                },
+
+                // 🆕 Susun array hari dalam sebulan (untuk grid kalender di tab detail)
+                getMonthCalendarDays() {
+                    if (!this.selectedMonth || !this.selectedParticipantDetail) return [];
+                    const [year, month] = this.selectedMonth.split('-').map(Number);
+                    const daysInMonth = this.getDaysInMonth(this.selectedMonth);
+                    const todayKey = this.getTodayKey();
+                    const pid = this.selectedParticipantDetail.id;
+
+                    const days = [];
+                    for (let d = 1; d <= daysInMonth; d++) {
+                        const dateKey = `${year}-${String(month).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+                        days.push({
+                            date: d,
+                            dateKey: dateKey,
+                            isToday: dateKey === todayKey,
+                            isFuture: dateKey > todayKey,
+                            checked: this.isParticipantCheckedOnDate(pid, dateKey),
+                            juz: this.getJuzForParticipantOnDate(pid, dateKey)
+                        });
+                    }
+                    return days;
                 },
 
                 async loadMotivations() {
